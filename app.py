@@ -8,9 +8,17 @@ import json
 import asyncio
 import os
 
-# Import our environment
 from src.env import InventoryGymEnv
 from src.models import Action
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# AI Configuration
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+API_KEY = os.getenv("HF_TOKEN")
 
 app = FastAPI(title="InventoryGym-v1 API")
 
@@ -34,6 +42,46 @@ async def state():
     """OpenEnv Standard State Endpoint"""
     state_data = await env_instance.state()
     return state_data
+
+@app.post("/suggest")
+async def suggest():
+    """Get AI-driven suggestion using HF Token"""
+    if not API_KEY:
+        return {"error": "HF_TOKEN not configured"}
+    
+    obs = await env_instance._get_obs()
+    state_summary = {
+        "cycle": obs.current_step,
+        "nodes": obs.warehouses,
+        "forecast": obs.forecasted_demand,
+        "pending": obs.pending_orders,
+        "market_intel": obs.market_intel,
+        "last_event": obs.last_action
+    }
+    
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    
+    prompt = """
+    You are the AEGIS AI Hub. Analyze the state and provide the OPTIMAL strategic command.
+    REASONING: Explain WHY in 1 short sentence.
+    COMMAND: Use 'order <id> <qty> [priority]' or 'transfer <from> <to> <qty> [priority]'.
+    OUTPUT FORMAT: JSON with "reasoning" and "command" keys.
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"State: {json.dumps(state_summary)}"}
+            ],
+            response_format={ "type": "json_object" },
+            max_tokens=60,
+            temperature=0
+        )
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
@@ -160,6 +208,9 @@ async def dashboard():
                             <button onclick="runStep('normal')" class="btn-hover py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/5 text-slate-300">Standard Plan</button>
                             <button onclick="runStep('expedited')" class="btn-hover py-4 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 rounded-2xl font-bold transition-all shadow-xl text-white">Rush Execute</button>
                         </div>
+                        <button onclick="getAISuggestion()" class="w-full py-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-2xl font-bold transition-all text-blue-400 flex items-center justify-center gap-3">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i> Get AI Intelligence
+                        </button>
                     </div>
                 </div>
                 <div id="market-news-container" class="glass-panel rounded-3xl p-6 border-blue-500/20 shadow-blue-500/5 hidden">
@@ -194,6 +245,29 @@ async def dashboard():
                     else log(`Operational Friction: ${r.toFixed(2)}`, 'warn');
                 }
                 updateUI(data.observation, data.reward);
+            }
+            async function getAISuggestion() {
+                log('Querying HF Intelligence Hub...', 'info');
+                const res = await fetch('/suggest', { method: 'POST' });
+                const data = await res.json();
+                if (data.error) log('AI Hub Offline: ' + data.error, 'warn');
+                else {
+                    log('AI STRATEGY: ' + data.reasoning, 'success');
+                    log('SUGGESTED COMMAND: ' + data.command, 'info');
+                    // Autofill the form
+                    const parts = data.command.split(' ');
+                    if (parts[0] === 'order') {
+                        document.getElementById('action-origin').value = '-1';
+                        document.getElementById('action-dest').value = parts[1];
+                        document.getElementById('action-qty').value = parts[2];
+                        document.getElementById('qty-disp').innerText = parts[2];
+                    } else if (parts[0] === 'transfer') {
+                        document.getElementById('action-origin').value = parts[1];
+                        document.getElementById('action-dest').value = parts[2];
+                        document.getElementById('action-qty').value = parts[3];
+                        document.getElementById('qty-disp').innerText = parts[3];
+                    }
+                }
             }
             function log(msg, type) {
                 const terminal = document.getElementById('terminal'); const div = document.createElement('div'); div.className = 'flex gap-4'; let color = 'text-blue-400';
