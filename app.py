@@ -358,12 +358,9 @@ async def dashboard():
                 const el = document.getElementById(id); const current = parseFloat(el.innerText.replace(/[^\d.-]/g, '')) || 0;
                 gsap.to({ val: current }, { val: target, duration: 1.2, ease: "power2.out", onUpdate: function() { 
                     let v = this.targets()[0].val;
-                    if (id.includes('score')) el.innerText = v.toFixed(2);
+                    if (id.includes('score') || id.includes('esg')) el.innerText = v.toFixed(2);
                     else if (id.includes('sl')) el.innerText = v.toFixed(1) + '%';
-                    else if (id.includes('reward')) {
-                        el.className = `text-base font-bold ${v >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-                        el.innerText = (v >= 0 ? '+' : '') + v.toFixed(0);
-                    } else el.innerText = prefix + v.toFixed(0) + suffix;
+                    else el.innerText = prefix + v.toFixed(0) + suffix;
                 } });
             }
             window.onload = resetEnv; lucide.createIcons();
