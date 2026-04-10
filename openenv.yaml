@@ -1,0 +1,10 @@
+name: AuditGym
+version: v1
+description: A forensic audit environment for detecting synthetic fraud in transaction datasets
+models:
+  - src.models.Action
+  - src.models.Observation
+  - src.models.ResetResponse
+  - src.models.StepResponse
+  - src.models.Transaction
+environment: src.env:AuditGymEnv
