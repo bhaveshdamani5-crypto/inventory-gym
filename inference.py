@@ -1,8 +1,9 @@
 import asyncio
 import os
+from typing import List
 from openai import OpenAI
 from src.env import AuditGymEnv
-from models import Action
+from src.models import Action
 
 # Configuration
 TASK_NAME = os.getenv("TASK_NAME", "audit-hard")
@@ -52,11 +53,14 @@ def log_start(task: str, env: str, model: str):
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
-    error_str = f" error={error}" if error else ""
-    print(f"[STEP] step={step} action={action!r} reward={reward:+.2f} done={done}{error_str}", flush=True)
+    done_str = "true" if done else "false"
+    error_str = error if error else "null"
+    print(f"[STEP] step={step} action={action!r} reward={reward:.2f} done={done_str} error={error_str}", flush=True)
 
 def log_end(success: bool, steps: int, score: float, rewards: list):
-    print(f"[END] success={success} steps={steps} score={score:.3f} rewards={rewards}", flush=True)
+    success_str = "true" if success else "false"
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={success_str} steps={steps} score={score:.2f} rewards={rewards_str}", flush=True)
 
 def get_model_message(client: OpenAI, step: int, echoed_message: str, last_reward: float, history: list) -> str:
     transactions_text = "\n".join([f"ID {t['id']}: Amount {t['amount']:.2f}, Date {t['date']}, Desc {t['description']}, Verified {t['verified']}, Info {t['extra_info']}" for t in echoed_message.get('transactions', [])]) if isinstance(echoed_message, dict) else "No transactions"
