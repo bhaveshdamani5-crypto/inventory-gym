@@ -75,11 +75,15 @@ async def suggest():
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": f"State: {json.dumps(state_summary)}"}
             ],
-            response_format={ "type": "json_object" },
             max_tokens=60,
             temperature=0
         )
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        import re
+        match = re.search(r'\{.*\}', content.replace('\n', ''))
+        if match:
+            return json.loads(match.group(0))
+        return json.loads(content)
     except Exception as e:
         return {"error": str(e)}
 
@@ -206,7 +210,7 @@ async def dashboard():
                     <div class="absolute inset-0 flex items-center justify-center p-12 mt-12">
                         <svg viewBox="0 0 800 400" id="network-svg" class="w-full h-full drop-shadow-2xl">
                             <defs><filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter></defs>
-                            <g transform="translate(400, 50)" filter="url(#glow)"><circle r="8" fill="white" class="animate-pulse" /><text y="35" text-anchor="middle" fill="white" font-size="10" font-family="Space Grotesk" font-weight="bold">GLOBAL SUPPLIER</text></g>
+                            <g transform="translate(400, 350)" filter="url(#glow)"><circle r="8" fill="white" class="animate-pulse" /><text y="-15" text-anchor="middle" fill="white" font-size="10" font-family="Space Grotesk" font-weight="bold">GLOBAL SUPPLIER</text></g>
                             <g id="map-links"></g><g id="map-nodes"></g>
                         </svg>
                     </div>
@@ -253,10 +257,10 @@ async def dashboard():
             </div>
         </main>
         <script>
-            let history = { step: [], demand: [], cost: [], sl: [] };
+            let chartData = { step: [], demand: [], cost: [], sl: [] };
             async function resetEnv() {
                 const res = await fetch('/reset', { method: 'POST' }); const data = await res.json();
-                history = { step: [], demand: [], cost: [], sl: [] }; document.getElementById('terminal').innerHTML = '';
+                chartData = { step: [], demand: [], cost: [], sl: [] }; document.getElementById('terminal').innerHTML = '';
                 log('Strategic session initiated.', 'info'); updateUI(data.observation);
             }
             async function runStep(priority) {
@@ -341,17 +345,21 @@ async def dashboard():
                 let linkHtml = '', nodeHtml = '';
                 obs.warehouses.forEach((w, i) => {
                     const coords = [
-                        {x: 150, y: 150}, {x: 650, y: 180}, {x: 500, y: 300}, {x: 200, y: 320}, {x: 400, y: 250}
+                        {x: 390, y: 100}, // London Hub
+                        {x: 680, y: 140}, // Tokyo Delta
+                        {x: 540, y: 190}, // Mumbai Nexus
+                        {x: 240, y: 130}, // Brooklyn Edge 
+                        {x: 410, y: 110}  // Frankfurt Core
                     ][i % 5];
                     const tx = coords.x; const ty = coords.y;
-                    linkHtml += `<path d="M 400 50 C 400 100, ${tx} 100, ${tx} ${ty}" stroke="rgba(59, 130, 246, 0.4)" stroke-width="1.5" fill="none" class="node-link" />`;
+                    linkHtml += `<path d="M 400 350 C 400 250, ${tx} 200, ${tx} ${ty}" stroke="rgba(59, 130, 246, 0.4)" stroke-width="1.5" fill="none" class="node-link" />`;
                     nodeHtml += `<g transform="translate(${tx}, ${ty})"><circle r="14" fill="rgba(255,255,255,0.05)" stroke="${w.utilization > 0.8 ? '#f43f5e' : '#3b82f6'}" stroke-width="1" stroke-dasharray="2 2" /><circle r="6" fill="${w.utilization > 0.8 ? '#f43f5e' : '#3b82f6'}" class="animate-pulse" /><text x="20" y="4" fill="white" font-size="10" font-family="Space Grotesk" font-weight="bold">${w.name}</text></g>`;
                 });
                 document.getElementById('map-links').innerHTML = linkHtml; document.getElementById('map-nodes').innerHTML = nodeHtml;
-                history.step.push(obs.current_step); history.demand.push(obs.forecasted_demand.reduce((acc, f) => acc + f.next_5_steps[0], 0));
-                history.cost.push(obs.total_cost); history.sl.push(obs.service_level);
+                chartData.step.push(obs.current_step); chartData.demand.push(obs.forecasted_demand.reduce((acc, f) => acc + f.next_5_steps[0], 0));
+                chartData.cost.push(obs.total_cost); chartData.sl.push(obs.service_level);
                 const layout = { margin: { t: 5, b: 30, l: 40, r: 10 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#475569', size: 9, family: 'Space Grotesk' }, xaxis: { gridcolor: 'rgba(255,255,255,0.02)', zeroline: false }, yaxis: { gridcolor: 'rgba(255,255,255,0.02)', zeroline: false } };
-                Plotly.react('demand-chart', [{ x: history.step, y: history.demand, type: 'scatter', line: { color: '#3b82f6', width: 2, shape: 'spline' }, fill: 'tozeroy', fillcolor: 'rgba(59, 130, 246, 0.05)' }], layout);
+                Plotly.react('demand-chart', [{ x: chartData.step, y: chartData.demand, type: 'scatter', line: { color: '#3b82f6', width: 2, shape: 'spline' }, fill: 'tozeroy', fillcolor: 'rgba(59, 130, 246, 0.05)' }], layout);
                 Plotly.react('inventory-chart', [{ x: obs.warehouses.map(w => w.name), y: obs.warehouses.map(w => w.inventory), type: 'bar', marker: { color: 'rgba(59, 130, 246, 0.6)' } }], layout);
             }
             function animateCounter(id, target, prefix = '', suffix = '') {
