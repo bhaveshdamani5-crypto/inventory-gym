@@ -152,6 +152,16 @@ async def dashboard():
             @keyframes banner-slide { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
             .gradient-text { background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
             .ai-news-item { border-left: 2px solid var(--primary); background: linear-gradient(90deg, rgba(59, 130, 246, 0.05), transparent); }
+            
+            /* Tactical UI Overhaul */
+            .tactical-grid {
+                background-size: 50px 50px;
+                background-image: linear-gradient(to right, rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+            }
+            .radar-bg { background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 60%); }
+            .pulse-ring { border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 50%; position: absolute; animation: ring-pulse 4s cubic-bezier(0.1, 0.5, 0.9, 1) infinite; }
+            @keyframes ring-pulse { 0% { transform: scale(0.1); opacity: 1; border-width: 3px; } 100% { transform: scale(3.5); opacity: 0; border-width: 1px; } }
+            .hologram-map { filter: invert(1) opacity(0.2) drop-shadow(0 0 20px rgba(59,130,246,0.8)); mix-blend-screen: screen; }
         </style>
     </head>
     <body class="min-h-screen flex flex-col">
@@ -203,14 +213,28 @@ async def dashboard():
 
         <main class="flex-grow p-6 grid grid-cols-12 gap-6 max-w-[1800px] mx-auto w-full">
             <div class="col-span-12 xl:col-span-8 space-y-6">
-                <div class="glass-panel rounded-3xl p-8 h-[450px] relative overflow-hidden group border border-white/5">
-                    <div class="absolute inset-0 flex items-center justify-center p-12 mt-12 opacity-40 mix-blend-screen pointer-events-none">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg" class="w-full h-full object-contain filter invert opacity-10">
+                <div class="glass-panel rounded-3xl p-8 h-[450px] relative overflow-hidden group border border-blue-500/20 tactical-grid shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] bg-[#020617]">
+                    <div class="absolute inset-0 radar-bg pointer-events-none"></div>
+                    
+                    <!-- Radar Pulsing Rings -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="w-[200px] h-[200px] pulse-ring" style="animation-delay: 0s"></div>
+                        <div class="w-[200px] h-[200px] pulse-ring" style="animation-delay: 1.33s"></div>
+                        <div class="w-[200px] h-[200px] pulse-ring" style="animation-delay: 2.66s"></div>
+                    </div>
+
+                    <div class="absolute inset-0 flex items-center justify-center p-12 mt-12 pointer-events-none hologram-map">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg" class="w-full h-full object-contain opacity-30">
                     </div>
                     <div class="absolute inset-0 flex items-center justify-center p-12 mt-12">
-                        <svg viewBox="0 0 800 400" id="network-svg" class="w-full h-full drop-shadow-2xl">
-                            <defs><filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter></defs>
-                            <g transform="translate(400, 350)" filter="url(#glow)"><circle r="8" fill="white" class="animate-pulse" /><text y="-15" text-anchor="middle" fill="white" font-size="10" font-family="Space Grotesk" font-weight="bold">GLOBAL SUPPLIER</text></g>
+                        <svg viewBox="0 0 800 400" id="network-svg" class="w-full h-full drop-shadow-[0_0_10px_rgba(59,130,246,1)]">
+                            <defs>
+                                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feGaussianBlur stdDeviation="4" result="blur"/>
+                                    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                                </filter>
+                            </defs>
+                            <g transform="translate(400, 350)" filter="url(#glow)"><circle r="8" fill="#3b82f6" class="animate-pulse" /><circle r="16" fill="none" stroke="#3b82f6" stroke-width="2" class="pulse-online"/><text y="-18" text-anchor="middle" fill="#60a5fa" font-size="11" font-family="Space Grotesk" font-weight="bold" letter-spacing="2">GLOBAL SUPPLIER</text></g>
                             <g id="map-links"></g><g id="map-nodes"></g>
                         </svg>
                     </div>
@@ -352,8 +376,8 @@ async def dashboard():
                         {x: 410, y: 110}  // Frankfurt Core
                     ][i % 5];
                     const tx = coords.x; const ty = coords.y;
-                    linkHtml += `<path d="M 400 350 C 400 250, ${tx} 200, ${tx} ${ty}" stroke="rgba(59, 130, 246, 0.4)" stroke-width="1.5" fill="none" class="node-link" />`;
-                    nodeHtml += `<g transform="translate(${tx}, ${ty})"><circle r="14" fill="rgba(255,255,255,0.05)" stroke="${w.utilization > 0.8 ? '#f43f5e' : '#3b82f6'}" stroke-width="1" stroke-dasharray="2 2" /><circle r="6" fill="${w.utilization > 0.8 ? '#f43f5e' : '#3b82f6'}" class="animate-pulse" /><text x="20" y="4" fill="white" font-size="10" font-family="Space Grotesk" font-weight="bold">${w.name}</text></g>`;
+                    linkHtml += `<path d="M 400 350 C 400 250, ${tx} 200, ${tx} ${ty}" stroke="rgba(59, 130, 246, 0.6)" stroke-width="2" fill="none" class="node-link" filter="url(#glow)" />`;
+                    nodeHtml += `<g transform="translate(${tx}, ${ty})" filter="url(#glow)"><circle r="20" fill="rgba(59,130,246,0.05)" stroke="${w.utilization > 0.8 ? '#f43f5e' : '#3b82f6'}" stroke-width="1.5" stroke-dasharray="3 3" /><circle r="7" fill="${w.utilization > 0.8 ? '#f43f5e' : '#60a5fa'}" class="animate-pulse" /><text x="25" y="4" fill="${w.utilization > 0.8 ? '#fecdd3' : '#eff6ff'}" font-size="11" font-family="Space Grotesk" font-weight="bold" letter-spacing="1.5" text-shadow="0 0 10px rgba(0,0,0,1)">${w.name}</text></g>`;
                 });
                 document.getElementById('map-links').innerHTML = linkHtml; document.getElementById('map-nodes').innerHTML = nodeHtml;
                 chartData.step.push(obs.current_step); chartData.demand.push(obs.forecasted_demand.reduce((acc, f) => acc + f.next_5_steps[0], 0));
