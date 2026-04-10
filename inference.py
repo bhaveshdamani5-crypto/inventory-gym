@@ -43,6 +43,10 @@ COMMANDS:
 1. 'order <dest_id> <qty> [priority]'
 2. 'transfer <from_id> <to_id> <qty> [priority]'
 
+REASONING:
+- Pay close attention to 'market_intel'. If news suggests a shock in a region, PROACTIVELY stockpile or transship stock away from affected nodes.
+- 'expedited' shipping is critical during shocks.
+
 STRICT OUTPUT: Respond ONLY with the command.
 """
 
@@ -104,6 +108,7 @@ async def main():
                         "nodes": obs.warehouses,
                         "forecast": obs.forecasted_demand,
                         "pending": obs.pending_orders,
+                        "market_intel": obs.market_intel,
                         "last_event": obs.last_action
                     }
                     

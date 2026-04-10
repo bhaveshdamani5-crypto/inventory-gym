@@ -162,8 +162,15 @@ async def dashboard():
                         </div>
                     </div>
                 </div>
-                <div class="glass-panel rounded-3xl p-8 flex-grow flex flex-col min-h-[450px] border-white/5 overflow-hidden">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Intelligence Stream</h3>
+                <div id="market-news-container" class="glass-panel rounded-3xl p-6 border-blue-500/20 shadow-blue-500/5 hidden">
+                    <div class="flex items-center gap-3 mb-3 pb-2 border-b border-white/5">
+                        <i data-lucide="rss" class="text-blue-400 w-4 h-4"></i>
+                        <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Market Intelligence Feed</h4>
+                    </div>
+                    <div id="market-news" class="space-y-3"></div>
+                </div>
+                <div class="glass-panel rounded-3xl p-8 flex-grow flex flex-col min-h-[400px] border-white/5 overflow-hidden">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Tactical Stream</h3>
                     <div id="terminal" class="flex-grow overflow-y-auto custom-scrollbar space-y-4 pr-2"></div>
                     <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden"><div id="step-progress" class="h-full bg-blue-500 transition-all duration-700"></div></div><span class="text-xs font-mono font-bold text-slate-400" id="step-counter">00 / 100</span></div></div>
                 </div>
@@ -202,6 +209,20 @@ async def dashboard():
                 document.getElementById('step-progress').style.width = `${obs.current_step}%`;
                 if (obs.last_action && obs.last_action.includes('SHOCK')) { document.getElementById('shock-banner').style.display = 'block'; document.getElementById('shock-banner').innerText = obs.last_action; }
                 else { document.getElementById('shock-banner').style.display = 'none'; }
+                
+                if (obs.market_intel && obs.market_intel.length > 0) {
+                    const container = document.getElementById('market-news-container');
+                    container.classList.remove('hidden');
+                    const newsList = document.getElementById('market-news');
+                    obs.market_intel.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = 'text-sm font-medium text-slate-200 p-3 bg-blue-500/10 rounded-xl border border-blue-500/10 animate-pulse';
+                        div.innerText = msg;
+                        newsList.prepend(div);
+                        if (newsList.children.length > 3) newsList.removeChild(newsList.lastChild);
+                    });
+                }
+                
                 if (document.getElementById('action-dest').options.length === 0) {
                     obs.warehouses.forEach(w => {
                         const opt = document.createElement('option'); opt.value = w.id; opt.innerText = w.name; document.getElementById('action-dest').appendChild(opt);

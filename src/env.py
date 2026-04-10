@@ -36,9 +36,12 @@ class InventoryGymEnv:
         self.total_fulfilled = 0.0
         self.last_action_desc = None
         
-        # State: Shock status
+        # State: Shock & Intel status
         self.shock_steps_left = 0
-        self.shock_type = None # "demand", "logistics"
+        self.shock_type = None 
+        self.shock_region = None
+        self.market_intel = []
+        self.upcoming_shocks = [] # [{type, region, countdown}]
 
     async def reset(self) -> ResetResponse:
         self.current_step = 0
@@ -50,6 +53,9 @@ class InventoryGymEnv:
         self.pending_orders = []
         self.shock_steps_left = 0
         self.shock_type = None
+        self.shock_region = None
+        self.market_intel = ["GLOBAL: Strategic Nexus Online. Monitoring regional fluctuations."]
+        self.upcoming_shocks = []
         
         self.warehouses = initialize_warehouses(self.num_warehouses)
         self.demand_patterns = generate_demand_patterns(self.num_warehouses, self.num_steps)
@@ -61,13 +67,51 @@ class InventoryGymEnv:
         self.current_step += 1
         reward = 0.0
         
-        # --- 0. Systemic Shock Logic ---
+        # --- 0. Systemic Shock & Intel Logic ---
+        self.market_intel = []
+        
+        # A. Start queued shocks
+        for s in self.upcoming_shocks[:]:
+            s['countdown'] -= 1
+            if s['countdown'] == 0:
+                self.shock_type = s['type']
+                self.shock_region = s['region']
+                self.shock_steps_left = random.randint(3, 7)
+                self.upcoming_shocks.remove(s)
+                self.market_intel.append(f"CRITICAL: {self.shock_type.upper()} SHOCK ACTIVE IN {self.shock_region.upper()}")
+        
+        # B. Expire active shocks
         if self.shock_steps_left > 0:
             self.shock_steps_left -= 1
-        elif random.random() < 0.02: # 2% chance of starting a new shock episode
-            self.shock_steps_left = random.randint(3, 7)
-            self.shock_type = random.choice(["demand", "logistics"])
-            self.last_action_desc = f"SYSTEM ALERT: {self.shock_type.upper()} SHOCK DETECTED"
+            if self.shock_steps_left == 0:
+                self.shock_type = None
+                self.shock_region = None
+        
+        # C. Generate new upcoming shocks (Predictive Reasoning Gap)
+        if len(self.upcoming_shocks) == 0 and self.shock_steps_left == 0:
+            if random.random() < 0.05: # 5% chance of a new event brewing
+                type = random.choice(["demand", "logistics"])
+                region = random.choice(["North", "South", "East", "West", "Central"])
+                countdown = random.randint(2, 4) # News precedes shock by 2-4 steps
+                self.upcoming_shocks.append({"type": type, "region": region, "countdown": countdown})
+                
+                # NLP-style News Emittance
+                itents = {
+                    "demand": [
+                        f"INTEL: Social media trends suggest viral surge in {region}.",
+                        f"INTEL: Seasonal consumer behavior spike forecasted in {region} sector.",
+                        f"INTEL: Rival shutdown in {region} expected to redirect traffic to our nodes."
+                    ],
+                    "logistics": [
+                        f"INTEL: Severe weather warnings issued for trade routes reaching {region}.",
+                        f"INTEL: Labor dispute at primary port serving the {region} region.",
+                        f"INTEL: Maintenance scheduled for automated hub in {region}."
+                    ]
+                }
+                self.market_intel.append(random.choice(itents[type]))
+        
+        if self.shock_type:
+            self.last_action_desc = f"SYSTEM ALERT: {self.shock_type.upper()} SHOCK - {self.shock_region.upper()}"
 
         # --- 1. Process Decisions (Replenishment vs Transshipment) ---
         if action.quantity > 0 and 0 <= action.dest_warehouse < len(self.warehouses):
@@ -78,9 +122,11 @@ class InventoryGymEnv:
                 unit_price = 1.0 if action.quantity < 500 else 0.85
                 premium = 0.6 if action.priority == "expedited" else 0.0
                 
-                # Logistics friction during logistics shock
+                # Logistics friction during logistics shock in the SAME region
                 if self.shock_type == "logistics" and self.shock_steps_left > 0:
-                    premium += 0.5 
+                    dest_region = self.warehouses[action.dest_warehouse].location
+                    if dest_region == self.shock_region:
+                        premium += 0.8 # Higher impact for targeted logistics shock
                 
                 order_cost = action.quantity * (unit_price + premium)
                 self.total_cost += order_cost
@@ -142,9 +188,10 @@ class InventoryGymEnv:
             demand_idx = self.current_step - 1
             demand = self.demand_patterns[i][demand_idx]
             
-            # Demand shock multiplier
+            # Regional Demand shock multiplier
             if self.shock_type == "demand" and self.shock_steps_left > 0:
-                demand *= random.uniform(2.5, 4.0)
+                if warehouse.location == self.shock_region:
+                    demand *= random.uniform(3.0, 5.0) # More severe regional shock
             
             self.history_demand[i].append(demand)
             self.total_demand += demand
@@ -252,6 +299,7 @@ class InventoryGymEnv:
             total_cost=round(self.total_cost, 2),
             service_level=round(global_sl, 4),
             compliance_score=round(self._calculate_compliance_score(), 4),
+            market_intel=self.market_intel,
             last_action=action_desc
         )
 

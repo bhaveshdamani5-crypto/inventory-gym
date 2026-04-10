@@ -40,6 +40,7 @@ As a Round 1 submission, our goal is to demonstrate that an RL agent, when given
 ### The Strategic Nexus
 Agents manage a multi-hub network where every node acts as a semi-autonomous entity. Unlike standard environments, **InventoryGym** introduces:
 - **Horizontal Transshipment**: Moving stock between warehouses to balance localized shocks without engaging the high-cost central supplier.
+- **Regional Market Intelligence (Reasoning Gap)**: Predictive NLP-based "News Feed" that hints at upcoming regional shocks 2-4 steps in advance. Requires high-level reasoning to stockpile proactively.
 - **Stochastic Lead Times**: Simulating real-world "Logistics Friction" where shipments may experience probabilistic delays.
 - **Systemic Shocks**: Random multi-cycle events (Demand Spikes or Supply Chain Bottlenecks) that require rapid tactical re-alignment.
 
@@ -57,6 +58,7 @@ The environment returns a full system snapshot every step:
 | `current_step` | `int` | Current progress in the 100-step episode. |
 | `total_cost` | `float` | Cumulative operational expenditures (Holding + Logistics). |
 | `service_level` | `float` | Overall fulfillment rate (Fulfilled Demand / Total Demand). |
+| `market_intel` | `List[str]` | **NLP News Feed**: Hints about upcoming shocks for reasoning. |
 | `compliance_score` | `float` | **Live Hackathon Grade** (0.01-0.99) calculated via grader. |
 
 ### 2. Action Space (`Action`)

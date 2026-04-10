@@ -46,6 +46,7 @@ class InventoryObservation(BaseModel):
     total_cost: float
     service_level: float                      # New: overall fulfillment rate
     compliance_score: float                   # NEW: 0.01 - 0.99 normalized grade
+    market_intel: List[str]                   # NEW: NLP-based news/intel for reasoning
     last_action: Optional[str] = None
 
 
