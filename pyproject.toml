@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inventory-gym"
+version = "1.0.0"
+description = "Global Strategic Resource Continuity Environment for Meta OpenEnv Hackathon"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "StrategyAlpha Team" }
+]
+dependencies = [
+    "pydantic",
+    "openai",
+    "streamlit",
+    "pandas",
+    "plotly",
+    "numpy",
+    "fastapi",
+    "uvicorn",
+    "openenv-core",
+    "python-dotenv"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
