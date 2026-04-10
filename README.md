@@ -132,12 +132,6 @@ python inference.py
 
 ---
 
-## 🛤️ Roadmap: The Path to Finals
-- [x] **Round 1**: Establish OpenEnv API compliance and high-fidelity dashboard.
-- [x] **Round 1**: Implement AEGIS tactical fallback for proof-of-concept.
-- [ ] **Semi-Finals**: Introduce multi-commodity tracking (Perishables/High-Value).
-- [ ] **Finals**: Implement real-time "Black Swan" event injection via User Interface.
-
 ---
 **Vision & Strategy by StrategyAlpha Team.**
 **Academic Support: Scalar School of Technology (SST).**
