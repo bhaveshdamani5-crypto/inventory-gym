@@ -7,6 +7,10 @@ import uvicorn
 import json
 import asyncio
 import os
+import sys
+
+# Ensure src namespace is discoverable from root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.env import InventoryGymEnv
 from src.models import Action
@@ -401,5 +405,9 @@ async def dashboard():
     </html>
     """
 
-if __name__ == "__main__":
+def main():
+    """Entry point for OpenEnv multi-mode routing"""
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
