@@ -1,4 +1,4 @@
-the ---
+---
 title: AuditGym-v1
 emoji: 🔍
 colorFrom: indigo
@@ -7,8 +7,7 @@ sdk: streamlit
 sdk_version: "1.28.0"
 python_version: "3.11"
 app_file: app.py
-pinned: true
-
+pinned: false
 ---
 
 # AuditGym-v1
