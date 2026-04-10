@@ -1,12 +1,10 @@
 ---
 title: InventoryGym-v1
 emoji: 📦
-colorFrom: blue
-colorTo: green
-sdk: streamlit
-sdk_version: "1.28.0"
-python_version: "3.11"
-app_file: app.py
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 8000
 pinned: false
 ---
 

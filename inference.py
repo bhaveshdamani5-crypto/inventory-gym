@@ -5,197 +5,131 @@ from openai import OpenAI
 from src.env import InventoryGymEnv
 from src.models import Action
 
-# Configuration
-TASK_NAME = os.getenv("TASK_NAME", "inventory-hard")
-BENCHMARK = "InventoryGym-v1"
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+# Configuration from Environment Variables
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
-MAX_STEPS = 100
-TEMPERATURE = 0.7
-MAX_TOKENS = 100
 
-# Task configurations
-TASK_CONFIGS = {
-    "inventory-easy": {"num_warehouses": 1, "num_steps": 50, "lead_time": 5, "inventory_penalty_factor": 1.0},
-    "inventory-medium": {"num_warehouses": 3, "num_steps": 100, "lead_time": 3, "inventory_penalty_factor": 1.5},
-    "inventory-hard": {"num_warehouses": 5, "num_steps": 100, "lead_time": 2, "inventory_penalty_factor": 2.0}
+TASK_NAME = os.getenv("TASK_NAME", "inventory-medium")
+BENCHMARK = "InventoryGym-v1"
+
+# Task Mapping
+CONFIGS = {
+    "inventory-easy": {"num_warehouses": 1, "num_steps": 50, "lead_time": 5},
+    "inventory-medium": {"num_warehouses": 3, "num_steps": 100, "lead_time": 4},
+    "inventory-hard": {"num_warehouses": 5, "num_steps": 100, "lead_time": 3}
 }
 
-config = TASK_CONFIGS.get(TASK_NAME, TASK_CONFIGS["inventory-hard"])
-SUCCESS_SCORE_THRESHOLD = 0.6
+config = CONFIGS.get(TASK_NAME, CONFIGS["inventory-medium"])
+MAX_STEPS = config["num_steps"]
+SUCCESS_SCORE_THRESHOLD = 0.8  # Target Service Level
 
 SYSTEM_PROMPT = """
-You are a supply chain optimization expert managing a multi-warehouse inventory network.
+You are a Lead Supply Chain Strategist. Manage inventory for a multi-warehouse network.
+Goal: Maintain Service Level > 90% and minimize total cost.
 
-Your goal: Minimize costs while meeting customer demand across all warehouses.
+MODES:
+- 'order <id> <qty> normal': 3-4 step lead time.
+- 'order <id> <qty> expedited': 1 step lead time, 50% extra cost.
 
-State information provided each step:
-- Current inventory levels at each warehouse
-- Pending orders and their arrival times
-- Forecasted demand for next 5 steps
-- Running total cost
-
-Action: Place a replenishment order
-Format: "order <warehouse_id> <quantity> [priority]"
-Example: "order 0 500" or "order 2 300 expedited"
-
-Constraints:
-- Each warehouse has a 3000 unit capacity
-- Standard orders take 2-3 steps to arrive (lead time)
-- Expedited orders arrive next step but cost 20% more
-- Holding cost: 0.5 per unit per step (expensive!)
-- Stockout penalty: -0.3 per unmet unit
-
-Strategy:
-1. Monitor forecasted demand for each warehouse
-2. Track pending orders and their ETAs
-3. Order enough to meet demand but avoid over-stocking
-4. Balance between holding costs and stockout penalties
-5. Use expedited orders strategically during spikes
-
-Optimize for: High fulfillment rate + Low total cost
+Respond strictly in the format: order <warehouse_id> <quantity> [priority]
 """
 
 def log_start(task: str, env: str, model: str):
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
-def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
+def log_step(step: int, action: str, reward: float, done: bool, error: str = "null"):
     done_str = "true" if done else "false"
     error_str = error if error else "null"
     print(f"[STEP] step={step} action={action!r} reward={reward:.2f} done={done_str} error={error_str}", flush=True)
 
-def log_end(success: bool, steps: int, score: float, rewards: list):
+def log_end(success: bool, steps: int, score: float, rewards: List[float], task: str):
     success_str = "true" if success else "false"
+    # CLAMP: Ensure score is strictly between 0.01 and 0.99 per hackathon rules
+    # This prevents :.2f from rounding to 0.00 or 1.00
+    clamped_score = max(0.01, min(0.99, score))
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    print(f"[END] success={success_str} steps={steps} score={score:.2f} rewards={rewards_str}", flush=True)
+    print(f"[END] task={task} success={success_str} steps={steps} score={clamped_score:.2f} rewards={rewards_str}", flush=True)
 
-def get_model_message(client: OpenAI, step: int, observation, last_reward: float, history: list) -> str:
-    # Format observation for LLM
-    warehouses_info = "\n".join([
-        f"Warehouse {w['id']}: {w['inventory']:.0f}/{w['capacity']} units (utilization: {w['utilization']:.1%})"
-        for w in observation.warehouses
-    ])
-    
-    pending_info = "None"
-    if observation.pending_orders:
-        pending_info = "\n".join([
-            f"Order {o['id']}: {o['quantity']:.0f} units to Warehouse {o['dest_warehouse']} (arrives in {o['steps_remaining']} steps)"
-            for o in observation.pending_orders
-        ])
-    
-    forecast_info = "\n".join([
-        f"Warehouse {f['warehouse_id']}: {f['next_5_steps']}"
-        for f in observation.forecasted_demand
-    ])
-    
-    history_context = "\n".join(history[-3:]) if history else "None"
-    
-    user_prompt = f"""
-Step: {step}
-Last reward: {last_reward:.2f}
-Total cost so far: ${observation.total_cost:.2f}
+async def main():
+    if not API_KEY:
+        log_end(False, 0, 0.001, [], TASK_NAME)
+        return
 
-Current Inventory:
-{warehouses_info}
-
-Pending Orders:
-{pending_info}
-
-5-Step Demand Forecast:
-{forecast_info}
-
-Recent History:
-{history_context}
-
-Decide your next ordering action:
-"""
-
-    try:
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=TEMPERATURE,
-            max_tokens=MAX_TOKENS,
-            stream=False,
-        )
-        text = (completion.choices[0].message.content or "").strip()
-        return text if text else "order 0 250"
-    except Exception as exc:
-        print(f"[DEBUG] Model request failed: {exc}", flush=True)
-        return "order 0 250"
-
-async def main() -> None:
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-
     env = InventoryGymEnv(**config)
-
-    history: List[str] = []
-    rewards: List[float] = []
-    steps_taken = 0
-    score = 0.0
-    success = False
-
+    
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
+    
+    rewards = []
+    steps_taken = 0
+    success = False
+    score = 0.0
 
     try:
-        result = await env.reset()
-        last_reward = 0.0
+        reset_resp = await env.reset()
+        obs = reset_resp.observation
 
         for step in range(1, MAX_STEPS + 1):
-            if result.done:
-                break
-
-            # Parse warehouse and quantity from action
-            action_text = get_model_message(client, step, result.observation, last_reward, history)
-            
-            # Simple parser: "order <warehouse> <quantity> [priority]"
-            parts = action_text.lower().split()
-            warehouse_id = 0
-            quantity = 250
-            priority = "normal"
-            
+            # Prompt the model
             try:
-                if "order" in action_text.lower():
-                    if len(parts) >= 3:
-                        warehouse_id = int(parts[1])
-                        quantity = float(parts[2])
-                        if len(parts) > 3:
-                            priority = parts[3]
-            except (ValueError, IndexError):
-                pass
+                state_summary = {
+                    "step": obs.current_step,
+                    "service_level": f"{obs.service_level:.1%}",
+                    "warehouses": obs.warehouses,
+                    "forecast": obs.forecasted_demand,
+                    "pending": obs.pending_orders
+                }
+                
+                response = client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": f"State: {state_summary}"}
+                    ],
+                    max_tokens=50,
+                    temperature=0.1
+                )
+                action_text = response.choices[0].message.content.strip().lower()
+            except Exception as e:
+                action_text = "order 0 0"
 
-            action = Action(dest_warehouse=warehouse_id, quantity=quantity, priority=priority)
-            result = await env.step(action)
+            # Parse action
+            parts = action_text.split()
+            w_id, qty, priority = 0, 0.0, "normal"
+            if "order" in parts:
+                idx = parts.index("order")
+                try:
+                    if len(parts) > idx + 1: w_id = int(parts[idx+1])
+                    if len(parts) > idx + 2: qty = float(parts[idx+2])
+                    if len(parts) > idx + 3: priority = parts[idx+3] if parts[idx+3] in ["normal", "expedited"] else "normal"
+                except: pass
+
+            # Step environment
+            action = Action(dest_warehouse=w_id, quantity=qty, priority=priority)
+            step_resp = await env.step(action)
+            obs = step_resp.observation
             
-            reward = result.reward or 0.0
-            done = result.done
-            
+            reward = step_resp.reward
             rewards.append(reward)
             steps_taken = step
-            last_reward = reward
+            
+            log_step(step=step, action=action_text, reward=reward, done=step_resp.done)
 
-            log_step(step=step, action=action_text, reward=reward, done=done, error=None)
-            history.append(f"Step {step}: {action_text} -> reward {reward:.2f}")
-
-            if done:
+            if step_resp.done:
                 break
 
-        # Final scoring
         final_state = await env.state()
-        score = final_state.get('fulfillment_rate', 0.0) * 0.6 + (1.0 - min(final_state.get('total_cost', 1e9) / 50000, 1.0)) * 0.4
-        score = max(0.0, min(1.0, score))
-        success = score >= SUCCESS_SCORE_THRESHOLD
+        from src.grader import grade_easy, grade_medium, grade_hard
+        if TASK_NAME == "inventory-easy": score = grade_easy(final_state)
+        elif TASK_NAME == "inventory-medium": score = grade_medium(final_state)
+        else: score = grade_hard(final_state)
+        
+        success = score >= 0.7  # Define success threshold
 
     finally:
-        try:
-            await env.close()
-        except Exception as e:
-            print(f"[DEBUG] env.close() error: {e}", flush=True)
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+        await env.close()
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards, task=TASK_NAME)
 
 if __name__ == "__main__":
     asyncio.run(main())

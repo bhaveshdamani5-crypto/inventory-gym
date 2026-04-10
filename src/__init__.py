@@ -1,1 +1,1 @@
-# AuditGym OpenEnv Environment
+# InventoryGym OpenEnv Environment

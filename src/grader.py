@@ -1,68 +1,73 @@
 """
 Grader functions for evaluating agent performance on InventoryGym tasks.
-Each grader returns a score between 0.0 and 1.0 based on final performance.
+Evaluates the trade-off between Supply Chain Stability (Service Level) and Cost Efficiency.
 """
-
 
 def grade_easy(state):
     """
-    Grade easy task: Single warehouse, predictable demand, long lead times.
-    Easy for agents to learn basic ordering patterns.
+    Easy: 1 Warehouse. Baseline for learning basic replenishment.
+    Requires >92% Service Level and stable costs.
     """
-    return _grade_inventory_task(
-        total_cost=state.get('total_cost', 1e9),
-        fulfillment_rate=state.get('fulfillment_rate', 0.0),
-        cost_budget=5000.0,  # Expected cost for baseline agent
-        min_fulfillment=0.90
+    return _compute_composite_score(
+        state,
+        target_sl=0.92,
+        cost_budget=15000.0,
+        sl_weight=0.7
     )
-
 
 def grade_medium(state):
     """
-    Grade medium task: 3 warehouses, variable demand, medium lead times.
-    Requires learning to coordinate orders across locations.
+    Medium: 3 Warehouses. Coordination and basic forecasting needed.
+    Requires >88% Service Level across network.
     """
-    return _grade_inventory_task(
-        total_cost=state.get('total_cost', 1e9),
-        fulfillment_rate=state.get('fulfillment_rate', 0.0),
-        cost_budget=12000.0,
-        min_fulfillment=0.85
+    return _compute_composite_score(
+        state,
+        target_sl=0.88,
+        cost_budget=40000.0,
+        sl_weight=0.6
     )
-
 
 def grade_hard(state):
     """
-    Grade hard task: 5 warehouses, seasonal demand, short lead times.
-    Requires sophisticated forecasting and multi-warehouse coordination.
+    Hard: 5 Warehouses + Volatile Demand. Advanced optimization required.
+    Requires resilient strategy against demand shocks.
     """
-    return _grade_inventory_task(
-        total_cost=state.get('total_cost', 1e9),
-        fulfillment_rate=state.get('fulfillment_rate', 0.0),
-        cost_budget=30000.0,
-        min_fulfillment=0.80
+    return _compute_composite_score(
+        state,
+        target_sl=0.85,
+        cost_budget=80000.0,
+        sl_weight=0.5 # Cost efficiency becomes more critical here
     )
 
-
-def _grade_inventory_task(total_cost, fulfillment_rate, cost_budget, min_fulfillment):
+def _compute_composite_score(state, target_sl, cost_budget, sl_weight):
     """
-    Compute composite score based on:
-    - Fulfillment rate (0.6 weight): How much demand was met
-    - Cost efficiency (0.4 weight): How low costs were relative to budget
+    Compute 0.0-1.0 score based on Service Level and Cost Efficiency.
+    """
+    actual_sl = state.get('service_level', 0.0)
+    total_cost = state.get('total_cost', 1e9)
     
-    Normalized to 0.0-1.0 range.
-    """
-    # Fulfillment score: linear from min_fulfillment to 1.0
-    if fulfillment_rate >= 1.0:
-        fulfillment_score = 1.0
-    elif fulfillment_rate >= min_fulfillment:
-        fulfillment_score = 0.5 + 0.5 * (fulfillment_rate - min_fulfillment) / (1.0 - min_fulfillment)
+    # 1. Service Level Score (Exponential decay below target)
+    if actual_sl >= target_sl:
+        sl_score = 1.0
     else:
-        fulfillment_score = 0.5 * (fulfillment_rate / min_fulfillment)
+        # Heavily penalize failing to meet service level targets
+        sl_score = (actual_sl / target_sl) ** 2
     
-    # Cost efficiency score: lower cost is better
-    cost_efficiency = min(1.0, cost_budget / max(total_cost, 1.0))
+    # 2. Cost Efficiency Score
+    # Linear scaling: 1.0 if at budget, higher if under, lower if over
+    # But we cap it to reward significant savings
+    cost_ratio = cost_budget / max(total_cost, 1.0)
+    cost_score = min(1.2, cost_ratio) # Bonus score for extreme efficiency
+    # Normalize to 0-1
+    cost_score = max(0.0, min(1.0, cost_score))
     
-    # Composite score with weights
-    score = 0.6 * fulfillment_score + 0.4 * cost_efficiency
+    # 3. Composite with weighted average
+    final_score = (sl_weight * sl_score) + ((1 - sl_weight) * cost_score)
     
-    return max(0.0, min(1.0, score))
+    # Penalty for early termination (if applicable) or extreme failure
+    if actual_sl < 0.3:
+        final_score *= 0.5
+        
+    # CLAMP: Ensure score is strictly between 0.01 and 0.99 per hackathon rules
+    # This ensures :.2f rounding never results in 0.00 or 1.00
+    return max(0.01, min(0.99, float(final_score)))

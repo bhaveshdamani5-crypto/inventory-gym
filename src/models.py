@@ -5,7 +5,7 @@ Pydantic models for InventoryGym-v1 OpenEnv environment
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import random
-from datetime import datetime, timedelta
+import math
 
 
 class Warehouse(BaseModel):
@@ -40,8 +40,10 @@ class InventoryObservation(BaseModel):
     warehouses: List[Dict[str, Any]]
     pending_orders: List[Dict[str, Any]]
     forecasted_demand: List[Dict[str, Any]]
+    historical_summary: List[Dict[str, Any]]  # New: past performance context
     current_step: int
     total_cost: float
+    service_level: float                      # New: overall fulfillment rate
     last_action: Optional[str] = None
 
 
@@ -58,19 +60,28 @@ class StepResponse(BaseModel):
 
 
 def generate_demand_patterns(num_warehouses: int, num_steps: int) -> Dict[int, List[float]]:
-    """Generate realistic demand patterns with seasonality and trends."""
+    """Generate realistic demand patterns with seasonality, trends, and shocks."""
     demand_patterns = {}
     
     for warehouse_id in range(num_warehouses):
         base_demand = random.uniform(150, 400)
-        trend = random.uniform(-0.3, 0.3)  # Linear trend
-        seasonality_period = random.choice([7, 14, 30])
+        trend = random.uniform(-0.2, 0.4) 
+        seasonality_period = random.choice([7, 14, 28])
         
         demands = []
         for step in range(num_steps + 100):
-            season_factor = 1.0 + 0.4 * (1.0 if (step % seasonality_period) < seasonality_period / 2 else -0.5)
-            noise = random.gauss(0, base_demand * 0.15)
-            demand = max(50, base_demand + trend * step + noise * season_factor)
+            # Seasonality using sine wave for smoother transitions
+            season_factor = 1.0 + 0.3 * math.sin(2 * math.pi * step / seasonality_period)
+            
+            # Random noise
+            noise = random.gauss(0, base_demand * 0.1)
+            
+            # Occasional Black Swan / Demand Spike (1% chance)
+            shock = 0
+            if random.random() < 0.01:
+                shock = base_demand * random.uniform(2.0, 4.0)
+            
+            demand = max(20, (base_demand + trend * step + noise) * season_factor + shock)
             demands.append(demand)
         
         demand_patterns[warehouse_id] = demands
@@ -84,13 +95,15 @@ def initialize_warehouses(num_warehouses: int) -> List[Warehouse]:
     locations = ["North", "South", "East", "West", "Central"]
     
     for i in range(num_warehouses):
+        # Different warehouses have different cost profiles
+        h_cost = 0.3 + (i * 0.1) 
         warehouse = Warehouse(
             id=i,
             name=f"Warehouse-{chr(65+i)}",
-            inventory=random.uniform(800, 1500),
-            capacity=3000,
-            holding_cost_per_unit=0.5,
-            location=locations[min(i, len(locations)-1)]
+            inventory=random.uniform(1000, 1800),
+            capacity=4000,
+            holding_cost_per_unit=h_cost,
+            location=locations[i % len(locations)]
         )
         warehouses.append(warehouse)
     
