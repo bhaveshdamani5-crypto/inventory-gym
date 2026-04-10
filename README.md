@@ -1,4 +1,15 @@
-the # AuditGym-v1
+the ---
+title: AuditGym-v1
+emoji: 🔍
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 8000
+pinned: true
+
+---
+
+# AuditGym-v1
 
 A real-world OpenEnv environment simulating forensic audit of transaction datasets to detect synthetic fraud.
 
