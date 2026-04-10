@@ -84,7 +84,7 @@ class InventoryGymEnv:
                 
                 order_cost = action.quantity * (unit_price + premium)
                 self.total_cost += order_cost
-                reward -= order_cost * 0.004
+                reward -= order_cost * 0.001 # Reduced order friction (was 0.004)
 
                 # Stochastic Lead Time (+/- 1 step variance)
                 base_steps = 1 if action.priority == "expedited" else self.lead_time
@@ -112,7 +112,7 @@ class InventoryGymEnv:
                     # Transshipment cost (fixed cost per move + small unit cost)
                     move_cost = 50.0 + (move_qty * 0.2)
                     self.total_cost += move_cost
-                    reward -= move_cost * 0.002
+                    reward -= move_cost * 0.0005 # Reduced transshipment friction (was 0.002)
                     
                     # High Priority/Fast transit for cross-node moves (1-2 steps)
                     lt = 1 if action.priority == "expedited" else 2
@@ -151,17 +151,17 @@ class InventoryGymEnv:
             self.total_fulfilled += fulfilled
             
             s_level = fulfilled / demand if demand > 0 else 1.0
-            reward += s_level * 0.5 # Fulfillment incentive
+            reward += s_level * 1.5 # Increased fulfillment incentive (was 0.5)
             
             # Stockout Penalty
             if fulfilled < demand:
                 loss = (demand - fulfilled)
-                reward -= (loss / 100.0) * 0.5
+                reward -= (loss / 100.0) * 0.3 # Softened penalty (was 0.5)
             
             # Holding Costs
             h_cost = warehouse.inventory * warehouse.holding_cost_per_unit * self.inventory_penalty_factor
             self.total_cost += h_cost
-            reward -= h_cost * 0.003
+            reward -= h_cost * 0.001 # Reduced holding friction (was 0.003)
             
             # --- RESEARCH-GRADE REWARD: Safety Stock Optimization ---
             # Penalize the square of distance from "Target Service Level" inventory
@@ -169,7 +169,7 @@ class InventoryGymEnv:
             rolling_avg = np.mean(self.history_demand[i][-10:]) if len(self.history_demand[i]) > 10 else demand
             target_stock = rolling_avg * self.lead_time * 1.8
             stock_error = abs(warehouse.inventory - target_stock) / warehouse.capacity
-            reward -= (stock_error ** 2) * 0.1
+            reward -= (stock_error ** 2) * 0.05 # Softened research penalty (was 0.1)
 
         # --- 4. Termination & Terminal Rewards ---
         done = self.current_step >= self.num_steps
