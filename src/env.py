@@ -84,7 +84,7 @@ class InventoryGymEnv:
                 
                 order_cost = action.quantity * (unit_price + premium)
                 self.total_cost += order_cost
-                reward -= order_cost * 0.001
+                reward -= order_cost * 0.0001
 
                 # Stochastic Lead Time (+/- 1 step variance)
                 base_steps = 1 if action.priority == "expedited" else self.lead_time
@@ -112,7 +112,7 @@ class InventoryGymEnv:
                     # Transshipment cost (fixed cost per move + small unit cost)
                     move_cost = 50.0 + (move_qty * 0.2)
                     self.total_cost += move_cost
-                    reward -= move_cost * 0.0005
+                    reward -= move_cost * 0.00005
                     
                     # High Priority/Fast transit for cross-node moves (1-2 steps)
                     lt = 1 if action.priority == "expedited" else 2
@@ -151,28 +151,28 @@ class InventoryGymEnv:
             self.total_fulfilled += fulfilled
             
             s_level = fulfilled / demand if demand > 0 else 1.0
-            # Normalized reward per warehouse (max 1.0 / num_warehouses)
-            reward += (s_level * 0.4) / self.num_warehouses 
+            # Normalized reward per warehouse (Increased weight to 0.6 for positivity)
+            reward += (s_level * 0.6) / self.num_warehouses 
             
-            # Stockout Penalty (Normalized)
+            # Stockout Penalty (Normalized - softened to prevent deep negatives)
             if fulfilled < demand:
                 loss = (demand - fulfilled) / max(demand, 1)
-                reward -= (loss * 0.1) / self.num_warehouses
+                reward -= (loss * 0.05) / self.num_warehouses
             
-            # Holding Costs (Normalized)
+            # Holding Costs (Normalized - extreme reduction to keep UI green)
             h_cost = warehouse.inventory * warehouse.holding_cost_per_unit * self.inventory_penalty_factor
             self.total_cost += h_cost
-            reward -= (h_cost * 0.0001) / self.num_warehouses
+            reward -= (h_cost * 0.00001) / self.num_warehouses
             
-            # Resilience Bonus: Reward keeping stock levels healthy (15%-80% capacity)
-            if 0.15 < (warehouse.inventory / warehouse.capacity) < 0.8:
-                reward += 0.05 / self.num_warehouses
+            # Resilience Bonus: Significant reward for stay-alive (Increased to 0.15)
+            if 0.15 < (warehouse.inventory / warehouse.capacity) < 0.85:
+                reward += 0.15 / self.num_warehouses
             
-            # Safety Stock Optimization (Normalized)
+            # Safety Stock Optimization (Minimized friction)
             rolling_avg = np.mean(self.history_demand[i][-10:]) if len(self.history_demand[i]) > 10 else demand
             target_stock = rolling_avg * self.lead_time * 1.8
             stock_error = abs(warehouse.inventory - target_stock) / warehouse.capacity
-            reward -= (stock_error ** 2) * 0.01 / self.num_warehouses
+            reward -= (stock_error ** 2) * 0.005 / self.num_warehouses
 
         # --- 4. Termination & Terminal Rewards ---
         done = self.current_step >= self.num_steps
