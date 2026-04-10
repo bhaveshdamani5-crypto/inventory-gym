@@ -84,7 +84,7 @@ class InventoryGymEnv:
                 
                 order_cost = action.quantity * (unit_price + premium)
                 self.total_cost += order_cost
-                reward -= order_cost * 0.001 # Reduced order friction (was 0.004)
+                reward -= order_cost * 0.001
 
                 # Stochastic Lead Time (+/- 1 step variance)
                 base_steps = 1 if action.priority == "expedited" else self.lead_time
@@ -112,7 +112,7 @@ class InventoryGymEnv:
                     # Transshipment cost (fixed cost per move + small unit cost)
                     move_cost = 50.0 + (move_qty * 0.2)
                     self.total_cost += move_cost
-                    reward -= move_cost * 0.0005 # Reduced transshipment friction (was 0.002)
+                    reward -= move_cost * 0.0005
                     
                     # High Priority/Fast transit for cross-node moves (1-2 steps)
                     lt = 1 if action.priority == "expedited" else 2
@@ -151,34 +151,26 @@ class InventoryGymEnv:
             self.total_fulfilled += fulfilled
             
             s_level = fulfilled / demand if demand > 0 else 1.0
-            reward += s_level * 1.5 # Increased fulfillment incentive (was 0.5)
+            reward += s_level * 1.5 
             
             # Stockout Penalty
             if fulfilled < demand:
                 loss = (demand - fulfilled)
-                reward -= (loss / 100.0) * 0.3 # Softened penalty (was 0.5)
+                reward -= (loss / 100.0) * 0.3
             
             # Holding Costs
             h_cost = warehouse.inventory * warehouse.holding_cost_per_unit * self.inventory_penalty_factor
             self.total_cost += h_cost
-            reward -= h_cost * 0.001 # Reduced holding friction (was 0.003)
+            reward -= h_cost * 0.001
             
-            # --- RESEARCH-GRADE REWARD: Safety Stock Optimization ---
-            # Penalize the square of distance from "Target Service Level" inventory
-            # We use an estimation based on recent demand.
+            # Safety Stock Optimization Penalty
             rolling_avg = np.mean(self.history_demand[i][-10:]) if len(self.history_demand[i]) > 10 else demand
             target_stock = rolling_avg * self.lead_time * 1.8
             stock_error = abs(warehouse.inventory - target_stock) / warehouse.capacity
-            reward -= (stock_error ** 2) * 0.05 # Softened research penalty (was 0.1)
+            reward -= (stock_error ** 2) * 0.05
 
         # --- 4. Termination & Terminal Rewards ---
         done = self.current_step >= self.num_steps
-        if done:
-            final_sl = self.total_fulfilled / self.total_demand if self.total_demand > 0 else 0.0
-            if final_sl >= 0.94:
-                reward += 5.0 # Strategic Excellence Bonus
-            elif final_sl < 0.75:
-                reward -= 5.0 # Systemic Failure Penalty
 
         return StepResponse(
             observation=self._get_obs(),
@@ -196,6 +188,22 @@ class InventoryGymEnv:
             "total_inventory": sum(w.inventory for w in self.warehouses),
             "shock_active": self.shock_steps_left > 0
         }
+
+    def _calculate_compliance_score(self) -> float:
+        """Calculate internal hackathon grade (0.01-0.99)"""
+        global_sl = self.total_fulfilled / self.total_demand if self.total_demand > 0 else 1.0
+        
+        # SL Score: Exponential decay below 88%
+        target_sl = 0.88
+        sl_score = 1.0 if global_sl >= target_sl else (global_sl / target_sl) ** 2
+        
+        # Cost Score: Ratio against a theoretical budget
+        theoretical_budget = (self.num_warehouses * 12000) + (self.current_step * self.num_warehouses * 50)
+        cost_score = min(1.0, theoretical_budget / max(self.total_cost, 1))
+        
+        # Composite
+        score = (0.6 * sl_score) + (0.4 * cost_score)
+        return max(0.01, min(0.99, score))
 
     def _get_obs(self) -> InventoryObservation:
         global_sl = self.total_fulfilled / self.total_demand if self.total_demand > 0 else 1.0
@@ -225,7 +233,7 @@ class InventoryGymEnv:
 
         action_desc = self.last_action_desc
         if self.shock_steps_left > 0:
-            action_desc = f"[ALERT] {self.shock_type.upper()} SHOCK ACTIVE ({self.shock_steps_left} cycles remaining)"
+            action_desc = f"[ALERT] {self.shock_type.upper()} SHOCK ACTIVE"
 
         return InventoryObservation(
             warehouses=warehouses_data,
@@ -235,6 +243,7 @@ class InventoryGymEnv:
             current_step=self.current_step,
             total_cost=round(self.total_cost, 2),
             service_level=round(global_sl, 4),
+            compliance_score=round(self._calculate_compliance_score(), 4),
             last_action=action_desc
         )
 

@@ -197,10 +197,7 @@ async def dashboard():
             function updateUI(obs, reward = 0) {
                 lucide.createIcons(); animateCounter('top-reward', reward, reward >= 0 ? '+' : '');
                 animateCounter('top-cost', obs.total_cost, '$'); animateCounter('top-sl', obs.service_level * 100, '', '%');
-                const slScore = obs.service_level >= 0.88 ? 1.0 : Math.pow(obs.service_level / 0.88, 2);
-                const costBudget = 40000; const costScore = Math.min(1.0, costBudget / Math.max(obs.total_cost, 1));
-                const clamped = Math.max(0.01, Math.min(0.99, (0.6 * slScore) + (0.4 * costScore)));
-                animateCounter('top-score', clamped, '');
+                animateCounter('top-score', obs.compliance_score, '');
                 document.getElementById('step-counter').innerText = `${obs.current_step.toString().padStart(2, '0')} / 100`;
                 document.getElementById('step-progress').style.width = `${obs.current_step}%`;
                 if (obs.last_action && obs.last_action.includes('SHOCK')) { document.getElementById('shock-banner').style.display = 'block'; document.getElementById('shock-banner').innerText = obs.last_action; }

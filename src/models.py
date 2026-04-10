@@ -45,6 +45,7 @@ class InventoryObservation(BaseModel):
     current_step: int
     total_cost: float
     service_level: float                      # New: overall fulfillment rate
+    compliance_score: float                   # NEW: 0.01 - 0.99 normalized grade
     last_action: Optional[str] = None
 
 
