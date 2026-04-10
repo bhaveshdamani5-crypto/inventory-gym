@@ -386,10 +386,17 @@ async def dashboard():
                 document.getElementById('map-links').innerHTML = linkHtml; document.getElementById('map-nodes').innerHTML = nodeHtml;
                 chartData.step.push(obs.current_step); chartData.demand.push(obs.forecasted_demand.reduce((acc, f) => acc + f.next_5_steps[0], 0));
                 chartData.cost.push(obs.total_cost); chartData.sl.push(obs.service_level);
-                const layout = { margin: { t: 5, b: 30, l: 40, r: 10 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8', size: 9, family: 'Space Grotesk' }, xaxis: { gridcolor: 'rgba(255,255,255,0.02)', zeroline: false }, yaxis: { gridcolor: 'rgba(255,255,255,0.02)', zeroline: false } };
+                const layout = { 
+                    margin: { t: 5, b: 30, l: 40, r: 10 }, 
+                    paper_bgcolor: 'rgba(0,0,0,0)', 
+                    plot_bgcolor: 'rgba(0,0,0,0)', 
+                    font: { color: '#94a3b8', size: 9, family: 'Space Grotesk' }, 
+                    xaxis: { type: 'category', gridcolor: 'rgba(255,255,255,0.02)', zeroline: false }, 
+                    yaxis: { gridcolor: 'rgba(255,255,255,0.02)', zeroline: false } 
+                };
                 const config = { responsive: true, displayModeBar: false };
-                Plotly.newPlot('demand-chart', [{ x: chartData.step, y: chartData.demand, type: 'scatter', line: { color: '#3b82f6', width: 2, shape: 'spline' }, fill: 'tozeroy', fillcolor: 'rgba(59, 130, 246, 0.05)' }], layout, config);
-                Plotly.newPlot('inventory-chart', [{ x: obs.warehouses.map(w => w.name), y: obs.warehouses.map(w => w.inventory), type: 'bar', marker: { color: 'rgba(59, 130, 246, 0.6)' } }], layout, config);
+                Plotly.react('demand-chart', [{ x: chartData.step, y: chartData.demand, type: 'scatter', line: { color: '#3b82f6', width: 2, shape: 'spline' }, fill: 'tozeroy', fillcolor: 'rgba(59, 130, 246, 0.05)' }], layout, config);
+                Plotly.react('inventory-chart', [{ x: obs.warehouses.map(w => w.name), y: obs.warehouses.map(w => w.inventory), type: 'bar', marker: { color: '#3b82f6' }, opacity: 0.8 }], layout, config);
             }
             function animateCounter(id, target, prefix = '', suffix = '') {
                 const el = document.getElementById(id); const current = parseFloat(el.innerText.replace(/[^\d.-]/g, '')) || 0;
