@@ -87,9 +87,9 @@ graph TD
 
 | Task ID | Nodes | Shock Frequency | Complexity | ESG Sensitivity |
 | :--- | :--- | :--- | :--- | :--- |
-| **inventory-easy** | 1 (Local) | Low | 🟢 Low | Low |
-| **inventory-medium** | 3 (Network)| Medium | 🟡 High | Medium |
-| **inventory-hard** | 5 (Global) | High | 🔴 Extreme | High |
+| **inventory_easy_task** | 1 (Local) | Low | 🟢 Low | Low |
+| **inventory_medium_task** | 3 (Network)| Medium | 🟡 High | Medium |
+| **inventory_hard_task** | 5 (Global) | High | 🔴 Extreme | High |
 
 ---
 
