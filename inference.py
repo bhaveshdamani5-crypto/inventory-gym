@@ -112,23 +112,24 @@ async def run_task(task_name: str, client: OpenAI):
                 print(f"STRICT ERROR: AI Model failed to respond: {e}")
                 break
 
-            # Parse action logic 
-            parts = action_text.replace(",", "").split()
+            # Parse action logic using robust regex
+            import re
+            action_text = action_text.replace(",", "").replace(".", "")
             dest_id, origin_id, qty, priority = 0, -1, 0.0, "normal"
             
             try:
-                if "order" in parts:
-                    dest_id = int(parts[1])
-                    qty = float(parts[2])
-                    if len(parts) > 3: priority = parts[3] if parts[3] in ["normal", "expedited"] else "normal"
-                elif "transfer" in parts:
-                    origin_id = int(parts[1])
-                    dest_id = int(parts[2])
-                    qty = float(parts[3])
-                    if len(parts) > 4: priority = parts[4] if parts[4] in ["normal", "expedited"] else "normal"
-                else:
-                    # Fallback to no-op
-                    pass 
+                order_match = re.search(r'order\s+(\d+)\s+([\d\.]+)(?:\s+(normal|expedited))?', action_text)
+                transfer_match = re.search(r'transfer\s+(\d+)\s+(\d+)\s+([\d\.]+)(?:\s+(normal|expedited))?', action_text)
+                
+                if order_match:
+                    dest_id = int(order_match.group(1))
+                    qty = float(order_match.group(2))
+                    if order_match.group(3): priority = order_match.group(3)
+                elif transfer_match:
+                    origin_id = int(transfer_match.group(1))
+                    dest_id = int(transfer_match.group(2))
+                    qty = float(transfer_match.group(3))
+                    if transfer_match.group(4): priority = transfer_match.group(4)
             except Exception:
                 pass 
 

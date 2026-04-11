@@ -17,8 +17,7 @@ def grade_easy(trajectory=None):
     return _compute_composite_score(
         trajectory,
         target_sl=0.92,
-        cost_budget=15000.0,
-        sl_weight=0.7
+        cost_budget=15000.0
     )
 
 def grade_medium(trajectory=None):
@@ -30,8 +29,7 @@ def grade_medium(trajectory=None):
     return _compute_composite_score(
         trajectory,
         target_sl=0.88,
-        cost_budget=40000.0,
-        sl_weight=0.6
+        cost_budget=40000.0
     )
 
 def grade_hard(trajectory=None):
@@ -43,25 +41,27 @@ def grade_hard(trajectory=None):
     return _compute_composite_score(
         trajectory,
         target_sl=0.85,
-        cost_budget=80000.0,
-        sl_weight=0.5 # Cost efficiency becomes more critical here
+        cost_budget=80000.0
     )
 
-def _compute_composite_score(trajectory, target_sl, cost_budget, sl_weight):
+def _compute_composite_score(trajectory, target_sl, cost_budget):
     """
-    Compute 0.0-1.0 score based on Service Level and Cost Efficiency.
+    Compute 0.0-1.0 score based on Service Level, Cost Efficiency, and ESG footprint.
+    Weights: 60% Service Level, 25% Cost, 15% ESG (as per technical whitepaper).
     """
     actual_sl = trajectory.get('service_level', 0.0)
     total_cost = trajectory.get('total_cost', 1e9)
+    total_carbon = trajectory.get('total_carbon', 1e9)
+    total_demand = trajectory.get('total_demand', 1.0)
     
-    # 1. Service Level Score (Exponential decay below target)
+    # 1. Service Level Score (60%)
     if actual_sl >= target_sl:
         sl_score = 1.0
     else:
         # Heavily penalize failing to meet service level targets
         sl_score = (actual_sl / target_sl) ** 2
     
-    # 2. Cost Efficiency Score
+    # 2. Cost Efficiency Score (25%)
     # Linear scaling: 1.0 if at budget, higher if under, lower if over
     # But we cap it to reward significant savings
     cost_ratio = cost_budget / max(total_cost, 1.0)
@@ -69,8 +69,12 @@ def _compute_composite_score(trajectory, target_sl, cost_budget, sl_weight):
     # Normalize to 0-1
     cost_score = max(0.0, min(1.0, cost_score))
     
-    # 3. Composite with weighted average
-    final_score = (sl_weight * sl_score) + ((1 - sl_weight) * cost_score)
+    # 3. ESG Sustainability Score (15%)
+    carbon_limit = max(total_demand * 0.05, 1.0)
+    sus_score = max(0.0, 1.0 - (total_carbon / carbon_limit))
+    
+    # Composite Weighting (60% SL, 25% Cost, 15% ESG)
+    final_score = (0.60 * sl_score) + (0.25 * cost_score) + (0.15 * sus_score)
     
     # Penalty for early termination (if applicable) or extreme failure
     if actual_sl < 0.3:

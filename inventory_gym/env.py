@@ -322,6 +322,8 @@ class InventoryGymEnv:
         return {
             "service_level": float(global_sl),
             "total_cost": float(self.total_cost),
+            "total_carbon": float(self.total_carbon),
+            "total_demand": float(self.total_demand),
             "current_step": self.current_step,
             "compliance_score": self._calculate_compliance_score()
         }
