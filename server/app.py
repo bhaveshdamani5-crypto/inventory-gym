@@ -9,8 +9,8 @@ import asyncio
 import os
 import sys
 
-# Ensure src namespace is discoverable from root
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Ensure inventory_gym package is discoverable for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from inventory_gym.env import InventoryGymEnv
 from inventory_gym.models import Action
