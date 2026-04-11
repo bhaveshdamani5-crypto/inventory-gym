@@ -25,10 +25,10 @@ It represents a **Digital Twin** of a multi-node global supply chain (London, To
 
 ## 🛰️ Technical Innovations (The "Elite" Edge)
 
-### 1. The Proactive Reasoning Gap (NLP Intelligence)
+### 1. The Proactive Reasoning Gap (Qwen-2.5-72B Intelligence)
 Standard RL models fail this environment because they only react to numerical changes. 
-*   **The Challenge**: A news flash might announce a *"Labor dispute at primary port"* 4 steps before a logistics blackout hits a region.
-*   **The Intelligence Requirement**: The AI must use its **Foundational LLM Brain** to deduce that it needs to recompute its logic *before* the math changes. This bridges the gap between **Perception** and **Optimization**.
+*   **The Model**: We utilize **Qwen/Qwen2.5-72B-Instruct** via the Hugging Face Inference Router as the primary strategic engine.
+*   **The Intelligence Requirement**: The AI must use its **72-Billion Parameter Brain** to deduce that it needs to recompute its logic *before* the math changes. This bridges the gap between **Perception** and **Optimization**.
 
 ### 2. Multi-Objective ESG Stewardship (Sustainable Ops)
 We have integrated a strict **Environmental, Social, and Governance (ESG)** objective layer. Success is no longer just about profit—it is about **Resource Responsibility**:
