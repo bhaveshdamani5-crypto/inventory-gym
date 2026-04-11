@@ -104,7 +104,7 @@ python server/app.py
 Execute the pre-built Agentic baseline that leverages the Hugging Face Router to solve the reasoning gap.
 ```bash
 export HF_TOKEN="your_huggingface_token"
-python inference.py --task inventory_hard_task
+python inference.py --task inventory_hard_task --model Qwen/Qwen2.5-72B-Instruct
 ```
 
 ### ✅ Official OpenEnv Validation
