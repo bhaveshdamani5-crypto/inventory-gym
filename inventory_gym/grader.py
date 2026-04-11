@@ -8,51 +8,51 @@ Phase 2 Compliance:
 - Compatible with parameterless validation checks
 """
 
-def grade_easy(state=None):
+def grade_easy(trajectory=None):
     """
     Easy: 1 Warehouse. Baseline for learning basic replenishment.
     Requires >92% Service Level and stable costs.
     """
-    state = state or {}
+    trajectory = trajectory or {}
     return _compute_composite_score(
-        state,
+        trajectory,
         target_sl=0.92,
         cost_budget=15000.0,
         sl_weight=0.7
     )
 
-def grade_medium(state=None):
+def grade_medium(trajectory=None):
     """
     Medium: 3 Warehouses. Coordination and basic forecasting needed.
     Requires >88% Service Level across network.
     """
-    state = state or {}
+    trajectory = trajectory or {}
     return _compute_composite_score(
-        state,
+        trajectory,
         target_sl=0.88,
         cost_budget=40000.0,
         sl_weight=0.6
     )
 
-def grade_hard(state=None):
+def grade_hard(trajectory=None):
     """
     Hard: 5 Warehouses + Volatile Demand. Advanced optimization required.
     Requires resilient strategy against demand shocks.
     """
-    state = state or {}
+    trajectory = trajectory or {}
     return _compute_composite_score(
-        state,
+        trajectory,
         target_sl=0.85,
         cost_budget=80000.0,
         sl_weight=0.5 # Cost efficiency becomes more critical here
     )
 
-def _compute_composite_score(state, target_sl, cost_budget, sl_weight):
+def _compute_composite_score(trajectory, target_sl, cost_budget, sl_weight):
     """
     Compute 0.0-1.0 score based on Service Level and Cost Efficiency.
     """
-    actual_sl = state.get('service_level', 0.0)
-    total_cost = state.get('total_cost', 1e9)
+    actual_sl = trajectory.get('service_level', 0.0)
+    total_cost = trajectory.get('total_cost', 1e9)
     
     # 1. Service Level Score (Exponential decay below target)
     if actual_sl >= target_sl:

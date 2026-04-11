@@ -12,7 +12,7 @@ from inventory_gym.env import InventoryGymEnv
 from inventory_gym.models import Action
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--task", type=str, default="inventory-medium")
+parser.add_argument("--task", type=str, default=None)
 parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-72B-Instruct")
 args = parser.parse_args()
 
