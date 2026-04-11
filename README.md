@@ -12,104 +12,113 @@ pinned: false
 
 ![Project Banner](https://raw.githubusercontent.com/bhaveshdamani5-crypto/inventory-gym/assets/assets/hero.png)
 
-> **"In a world of stochastic geopolitical shocks and climate imperatives, logistics is no longer about moving boxes—it is about the rapid, resilient mobilization of global intelligence."**
+> **"In a world of stochastic geopolitical shocks, logistics is no longer about moving boxes—it is about the rapid, resilient mobilization of global intelligence."**
 
 ---
 
-## 🏛️ Executive Summary: The "Domain Winner"
-**InventoryGym: Global Strategic Nexus** is an elite, production-grade Reinforcement Learning sandbox engineered explicitly for the **Meta PyTorch OpenEnv Hackathon 2026**. 
+## 🏛️ Executive Summary: The "Reasoning Gap" Solution
+**InventoryGym: Global Strategic Nexus** is an elite, production-grade Reinforcement Learning (RL) sandbox engineered for the **Meta PyTorch OpenEnv Hackathon 2026**.
 
-While traditional logistics environments focus on reactive inventory math (grid-worlds), **InventoryGym** introduces a **Deep LLM Reasoning Gap**. It models a multi-hub global network (London, Tokyo, Mumbai, New York, Frankfurt) where Large Language Models must navigate **Predictive NLP Market Intelligence**, **Multi-Objective ESG Constraints**, and **Stochastic Geopolitical Friction**.
-
----
-
-## 👨‍⚖️ Judges' Quick-Look Repo Summary
-- **Track**: OpenEnv Environment Development (Round 1)
-- **Primary Technical Innovation**: **Multi-Objective ESG Reward Shaping**. The AI must balance Profit/Speed against a strict Carbon Footprint penalty.
-- **The "LLM Reasoning Gap"**: Proactive News-to-Action mapping. We inject NLP variables (`market_intel`) into the state, forcing models to use semantic reading comprehension rather than just RL backpropagation to succeed.
-- **Phase 2 Validation Built-In**: 100% compliant with strict Cloud Validation traps (Parameterless reflection checks, strict 0.01-0.99 floating score clamping, and exact Regex log scraping).
-- **Domain Identity**: Global Strategic Command & Automated Geopolitics.
+While traditional logistics environments focus on reactive inventory math (grid-worlds), **InventoryGym** introduces a **reasoning gap** that requires Large Language Models (LLMs) to succeed. It models a multi-hub global network where agents must navigate **Predictive NLP Market Intelligence**, **Multi-Objective ESG Constraints**, and **Stochastic Geopolitical Friction**.
 
 ---
 
-## 🛰️ The "Neural Intelligence" Architecture
+## 🎯 Key Technical Innovations
 
-### 1. The Global Reasoning Gap (The NLP Feed)
-Unlike classic static environments, **InventoryGym** constantly emits unstructured Natural Language "Market Intel." 
-- **The Challenge**: A labor strike in Tokyo or a viral surge in New York is signaled in text **3 steps before** it actively manifests in the mathematical demand arrays.
-- **The Solution**: The AI agent must use semantic foresight to route stock *proactively*. Traditional rule-based PPO algorithms fail this test entirely; it requires a foundational LLM "brain."
+### 1. The Proactive "Reasoning Gap" (NLP Feed)
+Unlike static environments, **InventoryGym** emits unstructured Natural Language "Market Intel." 
+*   **The Intelligence Signal**: News of a labor strike in Tokyo or a viral surge in New York is emitted **3–4 steps before** it manifests in the demand arrays.
+*   **The LLM Advantage**: Only models capable of semantic foresight can route stock *proactively*. Rule-based or pure RL agents will always be "behind the shock."
 
-### 2. Multi-Objective ESG Stewardship (Sustainability Logic)
-We implemented a strict **Environmental, Social, and Governance (ESG)** objective layer. The AI must make complex moral/financial tradeoffs:
-- **Normal Operations**: Standard economic flow, low CO2 impact.
-- **Expedited (Air Freight)**: Solves emergencies but incurs a massive **4x Carbon Penalty**.
-- **Transshipment**: Node-to-Node horizontal balancing (Greener, 0.5x Carbon multiplier).
+### 2. Multi-Objective ESG Stewardship
+We have integrated a strict **Environmental, Social, and Governance (ESG)** layer into the core reward function. Agents must make complex trade-offs:
+*   **Expedited (Air Freight)**: Solves emergencies but incurs a massive **4x Carbon Penalty**.
+*   **Transshipment**: Moving stock between nodes (Network Balancing) provides a **0.5x Green Bonus** compared to global replenishment.
 
-> **The Hackathon Grader enforces a composite score: Service Level (60%), Cost (25%), and ESG Sustainability (15%).**
-
----
-
-## 🧠 Technical Specifications
-
-### 🧬 Observation Space (`InventoryObservation`)
-The environment returns a full high-fidelity snapshot defined by PyDantic schema:
-| Field | Context | Description |
-| :--- | :--- | :--- |
-| `warehouses` | **Global Hubs** | Real-time stock, and location-based costs (London, Mumbai, etc). |
-| `forecasted_demand`| **Predictive** | A 5-step rolling window forecast (Sine-wave seasonality). |
-| `market_intel` | **NLP Stream** | Predictive text news fragments for neural reasoning. |
-| `carbon_footprint` | **ESG Metric** | Dynamic, cumulative CO2 impact of all logic decisions. |
-| `compliance_score` | **Logic Grade** | 100% strict 0.01 - 0.99 Hackathon validation metric. |
-
-### 🛠️ Action Space (`Action`)
-- `dest_warehouse`: Target Node Integer ID.
-- `origin_warehouse`: `-1` (Global Supplier) or `ID` (**Horizontal Transshipment**).
-- `priority`: `"normal"` or `"expedited"` (Economic Delay vs. Carbon Impact).
+### 3. "Finals-Grade" Cloud Validation
+This environment is 100% compliant with the **OpenEnv CLI** and the Meta Cloud Validator:
+*   ✅ **Zero-Parameter Reflection**: Graders are compatible with automated reflection testing.
+*   ✅ **Strict Score Clamping**: All grades are clamped to `[0.01, 0.99]` to prevent binary validation failures.
+*   ✅ **Robust Regex Baseline**: Includes a baseline inference script that handles LLM "chattiness" without crashing.
 
 ---
 
-## 📈 Decision Physics: The OpenEnv Loop
+## 🧬 Environment Architecture
+
+### State Space (`InventoryObservation`)
+The observation is a high-fidelity Pydantic-validated snapshot:
+
+| Component | Information Provided |
+| :--- | :--- |
+| **Warehouses** | Real-time inventory, capacity, and utilization for global hubs (London, Tokyo, Mumbai, NY, Frankfurt). |
+| **Market Intel** | A stream of unstructured NLP news fragments signaling future demand or logistics shocks. |
+| **Forecasts** | A 5-step rolling window of "Predicted" demand (stochastic and seasonal). |
+| **ESG Metrics** | Accumulated Carbon Footprint and Sustainability Grade (0.01–0.99). |
+| **Pending Orders** | ETA and quantity of incoming shipments (Normal vs. Expedited). |
+
+### Action Space (`Action`)
+*   `dest_warehouse`: ID of the target hub.
+*   `origin_warehouse`: `-1` (Global Supplier) or `Hub ID` (Transshipment).
+*   `quantity`: Amount of resources to move.
+*   `priority`: `"normal"` (Sustainable/Slow) vs. `"expedited"` (Carbon-heavy/Fast).
+
+---
+
+## 📈 The Intelligence Loop
 
 ```mermaid
 graph TD
-    A[Global Neural Hub] -->|Observation| B(NLP Market Intel + ESG State)
+    A[AEGIS Strategic Hub] -->|Observation| B(Market Intel + ESG State)
     B -->|Reasoning| C{Strategic Decision}
-    C -->|Normal Order| D[Sustainable Profit]
-    C -->|Expedited| E[Emergency Response - Carbon Penalty]
-    C -->|Transshipment| F[Network Balancing - ESG Green Bonus]
-    D/E/F -->|Step Phase| G(Cloud Reflection Grader)
-    G -->|Composite Reward| A
+    C -->|Replenishment| D[Global Supplier Flow]
+    C -->|Transshipment| E[Network Rebalancing - Green Bonus]
+    C -->|Priority Ship| F[Emergency Ops - Carbon Penalty]
+    D/E/F -->|Execution| G(Stochastic Physics & Lead Times)
+    G -->|Reward Signal| A
+    G -->|Compliance Score| H[Hackathon Validation]
 ```
 
 ---
 
 ## 🏁 Task Maturity Matrix
 
-| YAML Mapping ID | Nodes | Geopolitical Shocks | Complexity | ESG Sensitivity |
-| :--- | :--- | :--- | :--- | :--- |
-| **inventory_easy_task** | 1 (Local) | Low | 🟢 Low | Low |
-| **inventory_medium_task** | 3 (Network)| Medium | 🟡 High | Medium |
-| **inventory_hard_task** | 5 (Global) | High | 🔴 Extreme | High |
-
-*(Note: YAML IDs exactly match our execution pipeline to guarantee flawless automated scraping).*
+| Task ID | Nodes | Geopolitical Shocks | Complexity | Target Service Level |
+| :--- | :---: | :---: | :---: | :---: |
+| `inventory_easy_task` | 1 | Low | 🟢 Low | > 92% |
+| `inventory_medium_task` | 3 | Medium | 🟡 Med | > 88% |
+| `inventory_hard_task` | 5 | Continuous | 🔴 High | > 85% |
 
 ---
 
-## 🚀 Deployment & Elite Strategic Baseline
+## 🚀 Quick Start & Deployment
 
-### 🧠 Tactical AI Baseline (Robust Regex)
-Our baseline uses an integrated **Qwen-72B Neural Inference** agent to solve the environment via the Hugging Face Router. The pipeline features completely robust regex parsing, meaning "chatty" LLMs will never crash the validation runner.
-
+### 1. View the Premium Dashboard
+We've built an interactive "Strategic Command" UI with pulsing maps and real-time inference telemetry.
 ```bash
-# 1. Provide your HF Authentication Parameters
-export HF_TOKEN="your_huggingface_token"
-
-# 2. Execute Strategic Inference
-python inference.py
+python server/app.py
+# View live at http://localhost:7860
 ```
 
-### 📊 Professional Command Dashboard
-We didn't just build an API; we built a visually arresting tactical UI. View the **Neural Strategic Nexus** live on port `7860`. Features:
-- **Geospatial Map**: Pulsing supply lines and regional hub telemetry.
-- **Neural Inference Stream**: A live terminal view into the AI's "thought process" and string logic.
-- **ESG Metrics**: Real-time graph tracking of Carbon footprint against Profit models.
+### 2. Run the Neural Baseline
+Our baseline uses **Qwen-2.5-72B** to solve the reasoning gap via the Hugging Face Inference Router.
+```bash
+export HF_TOKEN="your_token_here"
+python inference.py --task inventory_hard_task
+```
+
+### 3. OpenEnv Validation
+To verify compliance with the Meta Hackathon standards:
+```bash
+pip install openenv
+openenv validate .
+```
+
+---
+
+## 🏆 Competition Tracking
+*   **Track**: OpenEnv Phase 1 Submission
+*   **Primary Innovation**: Semantic Foresight & Multi-Objective ESG Shaping.
+*   **Status**: Production Ready / Fully Validated.
+
+---
+*Created for the Meta x SST OpenEnv Hackathon 2026. Powered by PyTorch and AI Reasoning.*
