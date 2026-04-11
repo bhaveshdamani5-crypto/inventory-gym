@@ -50,11 +50,13 @@ class InventoryObservation(BaseModel):
     compliance_score: float                   # Live Hackathon Grade
     market_intel: List[str]                   # NLP news/intel
     last_action: Optional[str] = None
+    instruction: Optional[str] = "Maximize fulfillment while minimizing carbon footprint."
 
 
 class ResetResponse(BaseModel):
     """OpenEnv reset response"""
     observation: InventoryObservation
+    info: Dict[str, Any] = {}
 
 
 class StepResponse(BaseModel):
@@ -62,6 +64,8 @@ class StepResponse(BaseModel):
     observation: InventoryObservation
     reward: float
     done: bool
+    truncated: bool = False
+    info: Dict[str, Any] = {}
 
 
 def generate_demand_patterns(num_warehouses: int, num_steps: int) -> Dict[int, List[float]]:

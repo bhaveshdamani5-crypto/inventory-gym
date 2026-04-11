@@ -4,15 +4,18 @@ description: "Global Strategic Resource Management & ESG Resilience Environment"
 type: openenv
 tags: ["supply-chain", "logistics", "ai-reasoning", "multi-objective", "esg"]
 tasks:
-  - id: inventory-easy
+  - id: inventory_easy
+    name: "Inventory Easy: Local Stewardship"
     difficulty: easy
     description: "Manage a single local hub with stable demand patterns."
     grader: inventory_gym.grader.grade_easy
-  - id: inventory-medium
+  - id: inventory_medium
+    name: "Inventory Medium: Regional Coordination"
     difficulty: medium
     description: "Coordinate a 3-node global network (London, Tokyo, Mumbai) with occasional regional shocks."
     grader: inventory_gym.grader.grade_medium
-  - id: inventory-hard
+  - id: inventory_hard
+    name: "Inventory Hard: Global Strategic Nexus"
     difficulty: hard
     description: "Secure a 5-node global nexus against continuous systemic shocks and ESG constraints."
     grader: inventory_gym.grader.grade_hard

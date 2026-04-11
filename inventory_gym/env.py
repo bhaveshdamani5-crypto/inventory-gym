@@ -70,7 +70,7 @@ class InventoryGymEnv:
         self.demand_patterns = generate_demand_patterns(self.num_warehouses, self.num_steps)
         self.history_demand = {i: [] for i in range(self.num_warehouses)}
         
-        return ResetResponse(observation=self._get_obs())
+        return ResetResponse(observation=self._get_obs(), info={})
 
     async def step(self, action: Action) -> StepResponse:
         self.current_step += 1
@@ -245,7 +245,9 @@ class InventoryGymEnv:
         return StepResponse(
             observation=self._get_obs(),
             reward=round(reward, 4),
-            done=done
+            done=done,
+            truncated=False,
+            info={}
         )
 
     def _calculate_compliance_score(self) -> float:
