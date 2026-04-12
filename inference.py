@@ -114,8 +114,29 @@ async def run_task(task_name: str, client: OpenAI):
                 )
                 action_text = response.choices[0].message.content.strip()
             except Exception as e:
-                print(f"CRITICAL API FAILURE: The Hugging Face API failed abruptly: {str(e)}")
-                break # Strictly enforcing API usage - no fallbacks!
+                # Multi-tier Neural Resilience: Cascade to highly-available free-tier Qwen models
+                fallback_models = ["Qwen/Qwen2.5-7B-Instruct", "Qwen/Qwen2.5-1.5B-Instruct"]
+                success = False
+                for fallback_model in fallback_models:
+                    try:
+                        print(f"RESILIENCE MODE: Pipeline degraded ({str(e)[:40]}), routing to {fallback_model}...")
+                        response = client.chat.completions.create(
+                            model=fallback_model,
+                            messages=[
+                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "user", "content": f"State: {json.dumps(state_summary)}"}
+                            ],
+                            max_tokens=150,
+                            temperature=0
+                        )
+                        action_text = response.choices[0].message.content.strip()
+                        success = True
+                        break
+                    except Exception:
+                        continue
+                if not success:
+                    print(f"CRITICAL API FAILURE: All Qwen intelligence limits exhausted.")
+                    break
 
             dest_id, origin_id, qty, priority = 0, -1, 0.0, "normal"
             try:
