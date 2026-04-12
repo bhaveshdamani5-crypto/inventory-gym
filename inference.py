@@ -140,13 +140,16 @@ async def run_task(task_name: str, client: OpenAI):
 
             dest_id, origin_id, qty, priority = 0, -1, 0.0, "normal"
             try:
-                # Parse structured JSON output
-                action_data = json.loads(action_text)
-                
-                # Depending on how the model outputs it (sometimes within markdown code blocks)
-                if isinstance(action_data, str):
-                    action_data = json.loads(action_data)
+                # Robust extraction: Strip all padding/markdown prior to the `{` and after `}`
+                start = action_text.find('{')
+                end = action_text.rfind('}')
+                if start != -1 and end != -1:
+                    clean_json = action_text[start:end+1]
+                else:
+                    clean_json = action_text
                     
+                action_data = json.loads(clean_json)
+                
                 action_type = action_data.get("action_type", "order").lower()
                 dest_id = int(action_data.get("dest_id", 0))
                 qty = float(action_data.get("qty", 0.0))
