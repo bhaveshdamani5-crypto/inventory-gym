@@ -57,9 +57,8 @@ async def main():
     print(f"  Total reward: {total_reward:.2f}")
     
     state = await env.state()
-    print(f"  Service level: {state['service_level']:.1%}")
-    print(f"  Final cost: ${state['total_cost']:.2f}")
-    print(f"  Carbon Footprint: {state['total_carbon']:.0f} g/CO2")
+    print(f"  Final cost: ${result.observation.total_cost:.2f}")
+    print(f"  Carbon Footprint: {result.observation.carbon_footprint:.0f} g/CO2")
 
     await env.close()
     print(f"\nDemo complete!")
