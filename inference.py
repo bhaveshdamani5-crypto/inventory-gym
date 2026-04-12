@@ -44,15 +44,19 @@ STRATEGY:
 - Use 'expedited' if a SHOCK is active or inventory is < 10% capacity.
 - Use 'transfer' to balance stock from Over-filled nodes to Under-filled nodes.
 
-COMMANDS:
-1. 'order <dest_id> <qty> [priority]'
-2. 'transfer <from_id> <to_id> <qty> [priority]'
-
 REASONING:
 - Pay close attention to 'market_intel'. If news suggests a shock in a region, PROACTIVELY stockpile or transship stock away from affected nodes.
 - 'expedited' shipping is critical during shocks.
 
-STRICT OUTPUT: Respond ONLY with the command.
+OUTPUT FORMAT:
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "action_type": "order" | "transfer",
+  "dest_id": int,
+  "origin_id": int, // Use -1 for orders
+  "qty": float,
+  "priority": "normal" | "expedited"
+}
 """
 
 def log_start(task: str, env: str, model: str):
@@ -104,46 +108,43 @@ async def run_task(task_name: str, client: OpenAI):
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": f"State: {json.dumps(state_summary)}"}
                     ],
-                    max_tokens=30,
+                    max_tokens=150,
                     temperature=0
                 )
-                action_text = response.choices[0].message.content.strip().lower()
+                action_text = response.choices[0].message.content.strip()
             except Exception as e:
                 # --- STRATEGIC HEURISTIC FALLBACK (Elite Resilience) ---
-                # This ensures the environment still runs perfectly if credits are out.
-                # It uses the logic described in the SYSTEM_PROMPT.
-                
-                # 1. Choose a warehouse that needs stock most
                 wh_needs = sorted(obs.warehouses, key=lambda x: x['inventory'])[0]
                 wh_id = obs.warehouses.index(wh_needs)
-                
-                # 2. Strategic Quantity (Replenish to 50% capacity)
                 target_qty = 500 - wh_needs['inventory']
-                
-                # 3. Handle Shocks (Expedite if news is active)
                 prio = "expedited" if len(obs.market_intel) > 0 else "normal"
                 
-                action_text = f"order {wh_id} {max(100, target_qty)} {prio}"
-                print(f"RESILIENCE MODE: API Failed ({e[:50]}...), using Strategic Heuristic: {action_text}")
+                fallback_action = {
+                    "action_type": "order",
+                    "dest_id": wh_id,
+                    "origin_id": -1,
+                    "qty": float(max(100, target_qty)),
+                    "priority": prio
+                }
+                action_text = json.dumps(fallback_action)
+                print(f"RESILIENCE MODE: API Failed ({str(e)[:50]}...), using Strategic Heuristic JSON: {action_text}")
 
-            # Parse action logic using robust regex
-            import re
-            action_text = action_text.replace(",", "").replace(".", "")
             dest_id, origin_id, qty, priority = 0, -1, 0.0, "normal"
-            
             try:
-                order_match = re.search(r'order\s+(\d+)\s+([\d\.]+)(?:\s+(normal|expedited))?', action_text)
-                transfer_match = re.search(r'transfer\s+(\d+)\s+(\d+)\s+([\d\.]+)(?:\s+(normal|expedited))?', action_text)
+                # Parse structured JSON output
+                action_data = json.loads(action_text)
                 
-                if order_match:
-                    dest_id = int(order_match.group(1))
-                    qty = float(order_match.group(2))
-                    if order_match.group(3): priority = order_match.group(3)
-                elif transfer_match:
-                    origin_id = int(transfer_match.group(1))
-                    dest_id = int(transfer_match.group(2))
-                    qty = float(transfer_match.group(3))
-                    if transfer_match.group(4): priority = transfer_match.group(4)
+                # Depending on how the model outputs it (sometimes within markdown code blocks)
+                if isinstance(action_data, str):
+                    action_data = json.loads(action_data)
+                    
+                action_type = action_data.get("action_type", "order").lower()
+                dest_id = int(action_data.get("dest_id", 0))
+                qty = float(action_data.get("qty", 0.0))
+                priority = action_data.get("priority", "normal")
+                
+                if action_type == "transfer":
+                    origin_id = int(action_data.get("origin_id", -1))
             except Exception:
                 pass 
 

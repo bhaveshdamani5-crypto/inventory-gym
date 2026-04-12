@@ -49,11 +49,14 @@ def _compute_composite_score(trajectory, target_sl, cost_budget):
     Compute 0.0-1.0 score based on Service Level, Cost Efficiency, and ESG footprint.
     Weights: 60% Service Level, 25% Cost, 15% ESG (as per technical whitepaper).
     """
-    actual_sl = trajectory.get('service_level', 0.0)
-    total_cost = trajectory.get('total_cost', 1e9)
-    total_carbon = trajectory.get('total_carbon', 1e9)
-    total_demand = trajectory.get('total_demand', 1.0)
+    history = trajectory.get('history', [])
     
+    total_cost = sum(step.get('cost', 0) for step in history)
+    total_carbon = sum(step.get('carbon', 0) for step in history)
+    total_demand = sum(step.get('demand', 0) for step in history)
+    total_fulfilled = sum(step.get('fulfilled', 0) for step in history)
+    
+    actual_sl = total_fulfilled / total_demand if total_demand > 0 else 1.0
     # 1. Service Level Score (60%)
     if actual_sl >= target_sl:
         sl_score = 1.0

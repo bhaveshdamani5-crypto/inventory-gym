@@ -60,6 +60,7 @@ class InventoryGymEnv:
         self.total_carbon = 0.0
         self.last_action_desc = None
         self.pending_orders = []
+        self.step_history = []
         self.shock_steps_left = 0
         self.shock_type = None
         self.shock_region = None
@@ -104,20 +105,19 @@ class InventoryGymEnv:
                 countdown = random.randint(2, 4) # News precedes shock by 2-4 steps
                 self.upcoming_shocks.append({"type": type, "region": region, "countdown": countdown})
                 
-                # NLP-style News Emittance
-                itents = {
-                    "demand": [
-                        f"INTEL: Social media trends suggest viral surge in {region}.",
-                        f"INTEL: Seasonal consumer behavior spike forecasted in {region} sector.",
-                        f"INTEL: Rival shutdown in {region} expected to redirect traffic to our nodes."
-                    ],
-                    "logistics": [
-                        f"INTEL: Severe weather warnings issued for trade routes reaching {region}.",
-                        f"INTEL: Labor dispute at primary port serving the {region} region.",
-                        f"INTEL: Maintenance scheduled for automated hub in {region}."
-                    ]
-                }
-                self.market_intel.append(random.choice(itents[type]))
+                # Dynamic NLP-style News Emittance
+                adjectives = ["Severe", "Unexpected", "Moderate", "Critical", "Escalating"]
+                sectors = ["retail", "industrial", "consumer", "logistics", "automation"]
+                verbs = ["suggest", "indicate", "forecast", "warn of", "highlight"]
+                
+                if type == "demand":
+                    self.market_intel.append(
+                        f"INTEL: {random.choice(adjectives)} signals {random.choice(verbs)} a viral surge in the {region} {random.choice(sectors)} sector."
+                    )
+                else:
+                    self.market_intel.append(
+                        f"INTEL: {random.choice(adjectives)} disruptions {random.choice(verbs)} bottlenecks for {region} trade routes."
+                    )
         
         if self.shock_type:
             self.last_action_desc = f"SYSTEM ALERT: {self.shock_type.upper()} SHOCK - {self.shock_region.upper()}"
@@ -239,12 +239,29 @@ class InventoryGymEnv:
             stock_error = abs(warehouse.inventory - target_stock) / warehouse.capacity
             reward -= (stock_error ** 2) * 0.005 / self.num_warehouses
 
-        # --- 4. Termination & Terminal Rewards ---
+        # --- 4. Store Step Data ---
+        step_cost = self.total_cost - getattr(self, '_prev_cost', 0.0)
+        step_carbon = self.total_carbon - getattr(self, '_prev_carbon', 0.0)
+        step_demand = sum(self.demand_patterns[i][self.current_step - 1] for i in range(self.num_warehouses))
+        step_fulfilled = self.total_fulfilled - getattr(self, '_prev_fulfilled', 0.0)
+        
+        self.step_history.append({
+            "step": self.current_step,
+            "demand": step_demand,
+            "fulfilled": step_fulfilled,
+            "cost": step_cost,
+            "carbon": step_carbon
+        })
+        self._prev_cost = self.total_cost
+        self._prev_carbon = self.total_carbon
+        self._prev_fulfilled = self.total_fulfilled
+
+        # --- 5. Termination & Terminal Rewards ---
         done = self.current_step >= self.num_steps
 
         return StepResponse(
             observation=self._get_obs(),
-            reward=round(reward, 4),
+            reward=max(0.01, min(0.99, round(reward, 4))),
             done=done,
             truncated=False,
             info={}
@@ -315,17 +332,9 @@ class InventoryGymEnv:
 
     async def state(self) -> Dict[str, Any]:
         """Returns the internal metrics required by the OpenEnv grader logic."""
-        global_sl = 1.0
-        if self.total_demand > 0:
-            global_sl = self.total_fulfilled / self.total_demand
-            
+        # Instead of pre-calculating the aggregates, we output the raw history
         return {
-            "service_level": float(global_sl),
-            "total_cost": float(self.total_cost),
-            "total_carbon": float(self.total_carbon),
-            "total_demand": float(self.total_demand),
-            "current_step": self.current_step,
-            "compliance_score": self._calculate_compliance_score()
+            "history": self.step_history
         }
 
     async def close(self): pass
